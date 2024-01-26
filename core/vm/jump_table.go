@@ -63,7 +63,7 @@ var (
 	constantinopleInstructionSet   = newConstantinopleInstructionSet()
 	istanbulInstructionSet         = newIstanbulInstructionSet()
 	subnetEVMInstructionSet        = newSubnetEVMInstructionSet()
-	dUpgradeInstructionSet         = newDUpgradeInstructionSet()
+	durangoInstructionSet          = newDurangoInstructionSet()
 )
 
 // JumpTable contains the EVM opcodes supported at a given fork.
@@ -87,9 +87,9 @@ func validate(jt JumpTable) JumpTable {
 	return jt
 }
 
-// newDUpgradeInstructionSet returns the frontier, homestead, byzantium,
-// contantinople, istanbul, petersburg, subnet-evm, d-upgrade instructions.
-func newDUpgradeInstructionSet() JumpTable {
+// newDurangoInstructionSet returns the frontier, homestead, byzantium,
+// constantinople, istanbul, petersburg, subnet-evm, durango instructions.
+func newDurangoInstructionSet() JumpTable {
 	instructionSet := newSubnetEVMInstructionSet()
 	enable3855(&instructionSet) // PUSH0 instruction
 	enable3860(&instructionSet) // Limit and meter initcode
@@ -97,7 +97,7 @@ func newDUpgradeInstructionSet() JumpTable {
 }
 
 // newSubnetEVMInstructionSet returns the frontier, homestead, byzantium,
-// contantinople, istanbul, petersburg, subnet-evm instructions.
+// constantinople, istanbul, petersburg, subnet-evm instructions.
 func newSubnetEVMInstructionSet() JumpTable {
 	instructionSet := newIstanbulInstructionSet()
 	enable2929(&instructionSet)
@@ -106,7 +106,7 @@ func newSubnetEVMInstructionSet() JumpTable {
 }
 
 // newIstanbulInstructionSet returns the frontier,
-// homestead, byzantium, contantinople and petersburg instructions.
+// homestead, byzantium, constantinople and petersburg instructions.
 func newIstanbulInstructionSet() JumpTable {
 	instructionSet := newConstantinopleInstructionSet()
 
@@ -118,7 +118,7 @@ func newIstanbulInstructionSet() JumpTable {
 }
 
 // newConstantinopleInstructionSet returns the frontier, homestead,
-// byzantium and contantinople instructions.
+// byzantium and constantinople instructions.
 func newConstantinopleInstructionSet() JumpTable {
 	instructionSet := newByzantiumInstructionSet()
 	instructionSet[SHL] = &operation{

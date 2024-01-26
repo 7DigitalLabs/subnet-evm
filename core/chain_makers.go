@@ -38,10 +38,10 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethdb"
 )
 
 // BlockGen creates blocks for testing.
@@ -253,6 +253,11 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts, error) {
 		b := &BlockGen{i: i, chain: blocks, parent: parent, statedb: statedb, config: config, engine: engine}
 		b.header = makeHeader(chainreader, config, parent, gap, statedb, b.engine)
+
+		err := ApplyUpgrades(config, &parent.Header().Time, b, statedb)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to configure precompiles %v", err)
+		}
 
 		// Execute any user modifications to the block
 		if gen != nil {

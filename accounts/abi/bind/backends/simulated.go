@@ -47,13 +47,13 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/filters"
-	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/interfaces"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -723,7 +723,7 @@ func (b *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transa
 		return errors.New("could not fetch parent")
 	}
 	// Check transaction validity
-	signer := types.NewLondonSigner(b.blockchain.Config().ChainID)
+	signer := types.MakeSigner(b.blockchain.Config(), block.Number(), block.Time())
 	sender, err := types.Sender(signer, tx)
 	if err != nil {
 		return fmt.Errorf("invalid transaction: %v", err)
@@ -894,8 +894,8 @@ func (fb *filterBackend) SubscribeAcceptedTransactionEvent(ch chan<- core.NewTxs
 	return fb.bc.SubscribeAcceptedTransactionEvent(ch)
 }
 
-func (fb *filterBackend) GetVMConfig() *vm.Config {
-	return fb.bc.GetVMConfig()
+func (fb *filterBackend) IsAllowUnfinalizedQueries() bool {
+	return false
 }
 
 func (fb *filterBackend) LastAcceptedBlock() *types.Block {
@@ -940,7 +940,11 @@ func (fb *filterBackend) GetReceipts(ctx context.Context, hash common.Hash) (typ
 	if number == nil {
 		return nil, nil
 	}
-	return rawdb.ReadReceipts(fb.db, hash, *number, fb.bc.Config()), nil
+	header := rawdb.ReadHeader(fb.db, hash, *number)
+	if header == nil {
+		return nil, nil
+	}
+	return rawdb.ReadReceipts(fb.db, hash, *number, header.Time, fb.bc.Config()), nil
 }
 
 func (fb *filterBackend) GetLogs(ctx context.Context, hash common.Hash, number uint64) ([][]*types.Log, error) {

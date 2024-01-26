@@ -19,13 +19,13 @@ var (
 
 // GossipHandler handles incoming gossip messages
 type GossipHandler interface {
-	HandleTxs(nodeID ids.NodeID, msg TxsGossip) error
+	HandleEthTxs(nodeID ids.NodeID, msg EthTxsGossip) error
 }
 
 type NoopMempoolGossipHandler struct{}
 
-func (NoopMempoolGossipHandler) HandleTxs(nodeID ids.NodeID, _ TxsGossip) error {
-	log.Debug("dropping unexpected Txs message", "peerID", nodeID)
+func (NoopMempoolGossipHandler) HandleEthTxs(nodeID ids.NodeID, msg EthTxsGossip) error {
+	log.Debug("dropping unexpected EthTxsGossip message", "peerID", nodeID)
 	return nil
 }
 
@@ -38,7 +38,8 @@ type RequestHandler interface {
 	HandleTrieLeafsRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, leafsRequest LeafsRequest) ([]byte, error)
 	HandleBlockRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, blockRequest BlockRequest) ([]byte, error)
 	HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, codeRequest CodeRequest) ([]byte, error)
-	HandleSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest SignatureRequest) ([]byte, error)
+	HandleMessageSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest MessageSignatureRequest) ([]byte, error)
+	HandleBlockSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest BlockSignatureRequest) ([]byte, error)
 }
 
 // ResponseHandler handles response for a sent request
@@ -64,7 +65,11 @@ func (NoopRequestHandler) HandleCodeRequest(ctx context.Context, nodeID ids.Node
 	return nil, nil
 }
 
-func (NoopRequestHandler) HandleSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest SignatureRequest) ([]byte, error) {
+func (NoopRequestHandler) HandleMessageSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest MessageSignatureRequest) ([]byte, error) {
+	return nil, nil
+}
+
+func (NoopRequestHandler) HandleBlockSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest BlockSignatureRequest) ([]byte, error) {
 	return nil, nil
 }
 

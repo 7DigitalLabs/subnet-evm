@@ -40,9 +40,9 @@ import (
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -163,9 +163,7 @@ func prune(maindb ethdb.Database, stateBloom *stateBloom, bloomPath string, star
 			if isCode {
 				checkKey = codeKey
 			}
-			if ok, err := stateBloom.Contain(checkKey); err != nil {
-				return err
-			} else if ok {
+			if stateBloom.Contain(checkKey) {
 				continue
 			}
 			count += 1

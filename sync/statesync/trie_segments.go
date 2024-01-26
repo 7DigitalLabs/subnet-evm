@@ -12,11 +12,11 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/ethdb"
 	syncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -196,7 +196,7 @@ func (t *trieToSync) segmentFinished(ctx context.Context, idx int) error {
 			}
 			// update the stack trie and cap the batch it writes to.
 			value := common.CopyBytes(it.Value())
-			if err := t.stackTrie.TryUpdate(it.Key(), value); err != nil {
+			if err := t.stackTrie.Update(it.Key(), value); err != nil {
 				return err
 			}
 			if t.batch.ValueSize() > t.sync.batchSize {

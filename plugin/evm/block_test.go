@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
@@ -23,9 +22,9 @@ func TestHandlePrecompileAccept(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	db := memdb.New()
+	db := rawdb.NewMemoryDatabase()
 	vm := &VM{
-		chaindb:     Database{db},
+		chaindb:     db,
 		chainConfig: params.TestChainConfig,
 	}
 
@@ -69,6 +68,8 @@ func TestHandlePrecompileAccept(t *testing.T) {
 	gomock.InOrder(
 		mockAccepter.EXPECT().Accept(
 			gomock.Not(gomock.Nil()),                // acceptCtx
+			ethBlock.Hash(),                         // blockHash
+			ethBlock.NumberU64(),                    // blockNumber
 			ethBlock.Transactions()[txIndex].Hash(), // txHash
 			0,                                       // logIndex
 			receipt.Logs[0].Topics,                  // topics
@@ -76,6 +77,8 @@ func TestHandlePrecompileAccept(t *testing.T) {
 		),
 		mockAccepter.EXPECT().Accept(
 			gomock.Not(gomock.Nil()),                // acceptCtx
+			ethBlock.Hash(),                         // blockHash
+			ethBlock.NumberU64(),                    // blockNumber
 			ethBlock.Transactions()[txIndex].Hash(), // txHash
 			2,                                       // logIndex
 			receipt.Logs[2].Topics,                  // topics

@@ -79,7 +79,6 @@ var (
 
 		HomesteadBlock:           big.NewInt(0),
 		EIP150Block:              big.NewInt(0),
-		EIP150Hash:               common.HexToHash("0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0"),
 		EIP155Block:              big.NewInt(0),
 		EIP158Block:              big.NewInt(0),
 		ByzantiumBlock:           big.NewInt(0),
@@ -92,13 +91,12 @@ var (
 	}
 
 	TestChainConfig = &ChainConfig{
-		AvalancheContext:    AvalancheContext{snow.DefaultContextTest()},
+		AvalancheContext:    AvalancheContext{utils.TestSnowContext()},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
 		HomesteadBlock:      big.NewInt(0),
 		EIP150Block:         big.NewInt(0),
-		EIP150Hash:          common.Hash{},
 		EIP155Block:         big.NewInt(0),
 		EIP158Block:         big.NewInt(0),
 		ByzantiumBlock:      big.NewInt(0),
@@ -108,20 +106,19 @@ var (
 		MuirGlacierBlock:    big.NewInt(0),
 		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
-			DUpgradeTimestamp:  utils.NewUint64(0),
+			DurangoTimestamp:   utils.NewUint64(0),
 		},
 		GenesisPrecompiles: Precompiles{},
 		UpgradeConfig:      UpgradeConfig{},
 	}
 
 	TestSubnetEVMConfig = &ChainConfig{
-		AvalancheContext:    AvalancheContext{snow.DefaultContextTest()},
+		AvalancheContext:    AvalancheContext{utils.TestSnowContext()},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
 		HomesteadBlock:      big.NewInt(0),
 		EIP150Block:         big.NewInt(0),
-		EIP150Hash:          common.Hash{},
 		EIP155Block:         big.NewInt(0),
 		EIP158Block:         big.NewInt(0),
 		ByzantiumBlock:      big.NewInt(0),
@@ -137,13 +134,12 @@ var (
 	}
 
 	TestPreSubnetEVMConfig = &ChainConfig{
-		AvalancheContext:         AvalancheContext{snow.DefaultContextTest()},
+		AvalancheContext:         AvalancheContext{utils.TestSnowContext()},
 		ChainID:                  big.NewInt(1),
 		FeeConfig:                DefaultFeeConfig,
 		AllowFeeRecipients:       false,
 		HomesteadBlock:           big.NewInt(0),
 		EIP150Block:              big.NewInt(0),
-		EIP150Hash:               common.Hash{},
 		EIP155Block:              big.NewInt(0),
 		EIP158Block:              big.NewInt(0),
 		ByzantiumBlock:           big.NewInt(0),
@@ -195,9 +191,7 @@ type ChainConfig struct {
 	HomesteadBlock *big.Int `json:"homesteadBlock,omitempty"` // Homestead switch block (nil = no fork, 0 = already homestead)
 
 	// EIP150 implements the Gas price changes (https://github.com/ethereum/EIPs/issues/150)
-	EIP150Block *big.Int    `json:"eip150Block,omitempty"` // EIP150 HF block (nil = no fork)
-	EIP150Hash  common.Hash `json:"eip150Hash,omitempty"`  // EIP150 HF hash (needed for header only clients as only gas pricing changed)
-
+	EIP150Block *big.Int `json:"eip150Block,omitempty"` // EIP150 HF block (nil = no fork)
 	EIP155Block *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block
 	EIP158Block *big.Int `json:"eip158Block,omitempty"` // EIP158 HF block
 
@@ -284,12 +278,9 @@ func (c *ChainConfig) Description() string {
 		banner += fmt.Sprintf(" - Muir Glacier:                #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/muir-glacier.md)\n", c.MuirGlacierBlock)
 	}
 	banner += "Mandatory Upgrades:\n"
-	if c.SubnetEVMTimestamp != nil {
-		banner += fmt.Sprintf(" - SubnetEVM Timestamp:             @%-10v (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)\n", *c.SubnetEVMTimestamp)
-	}
-	if c.DUpgradeTimestamp != nil {
-		banner += fmt.Sprintf(" - DUpgrade Timestamp:              @%-10v (https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0)\n", *c.DUpgradeTimestamp)
-	}
+	banner += fmt.Sprintf(" - SubnetEVM Timestamp:           @%-10v (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)\n", ptrToString(c.SubnetEVMTimestamp))
+	banner += fmt.Sprintf(" - Durango Timestamp:            @%-10v (https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0)\n", ptrToString(c.DurangoTimestamp))
+	banner += fmt.Sprintf(" - Cancun Timestamp:              @%-10v (https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0)\n", ptrToString(c.CancunTime))
 	banner += "\n"
 
 	// Add Subnet-EVM custom fields
@@ -379,19 +370,25 @@ func (c *ChainConfig) IsSubnetEVM(time uint64) bool {
 	return utils.IsTimestampForked(c.SubnetEVMTimestamp, time)
 }
 
-// IsDUpgrade returns whether [time] represents a block
-// with a timestamp after the DUpgrade upgrade time.
-func (c *ChainConfig) IsDUpgrade(time uint64) bool {
-	return utils.IsTimestampForked(c.DUpgradeTimestamp, time)
+// IsDurango returns whether [time] represents a block
+// with a timestamp after the Durango upgrade time.
+func (c *ChainConfig) IsDurango(time uint64) bool {
+	return utils.IsTimestampForked(c.DurangoTimestamp, time)
 }
 
-func (r *Rules) PredicatesExist() bool {
-	return len(r.Predicates) > 0
+// IsCancun returns whether [time] represents a block
+// with a timestamp after the Cancun upgrade time.
+func (c *ChainConfig) IsCancun(time uint64) bool {
+	return utils.IsTimestampForked(c.CancunTime, time)
 }
 
-func (r *Rules) PredicateExists(addr common.Address) bool {
-	_, predicateExists := r.Predicates[addr]
-	return predicateExists
+func (r *Rules) PredicatersExist() bool {
+	return len(r.Predicaters) > 0
+}
+
+func (r *Rules) PredicaterExists(addr common.Address) bool {
+	_, PredicaterExists := r.Predicaters[addr]
+	return PredicaterExists
 }
 
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
@@ -697,7 +694,14 @@ func (err *ConfigCompatError) Error() string {
 	if err.StoredBlock != nil {
 		return fmt.Sprintf("mismatching %s in database (have block %d, want block %d, rewindto block %d)", err.What, err.StoredBlock, err.NewBlock, err.RewindToBlock)
 	}
-	return fmt.Sprintf("mismatching %s in database (have timestamp %d, want timestamp %d, rewindto timestamp %d)", err.What, err.StoredTime, err.NewTime, err.RewindToTime)
+	return fmt.Sprintf("mismatching %s in database (have timestamp %s, want timestamp %s, rewindto timestamp %d)", err.What, ptrToString(err.StoredTime), ptrToString(err.NewTime), err.RewindToTime)
+}
+
+func ptrToString(val *uint64) string {
+	if val == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("%d", *val)
 }
 
 // Rules wraps ChainConfig and is merely syntactic sugar or can be used for functions
@@ -709,19 +713,20 @@ type Rules struct {
 	ChainID                                                 *big.Int
 	IsHomestead, IsEIP150, IsEIP155, IsEIP158               bool
 	IsByzantium, IsConstantinople, IsPetersburg, IsIstanbul bool
+	IsCancun                                                bool
 
 	// Rules for Avalanche releases
 	IsSubnetEVM bool
-	IsDUpgrade  bool
+	IsDurango   bool
 
 	// ActivePrecompiles maps addresses to stateful precompiled contracts that are enabled
 	// for this rule set.
 	// Note: none of these addresses should conflict with the address space used by
 	// any existing precompiles.
 	ActivePrecompiles map[common.Address]precompileconfig.Config
-	// Predicates maps addresses to stateful precompile predicate functions
+	// Predicaters maps addresses to stateful precompile Predicaters
 	// that are enabled for this rule set.
-	Predicates map[common.Address]precompileconfig.Predicater
+	Predicaters map[common.Address]precompileconfig.Predicater
 	// AccepterPrecompiles map addresses to stateful precompile accepter functions
 	// that are enabled for this rule set.
 	AccepterPrecompiles map[common.Address]precompileconfig.Accepter
@@ -734,7 +739,7 @@ func (r *Rules) IsPrecompileEnabled(addr common.Address) bool {
 }
 
 // Rules ensures c's ChainID is not nil.
-func (c *ChainConfig) rules(num *big.Int) Rules {
+func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 	chainID := c.ChainID
 	if chainID == nil {
 		chainID = new(big.Int)
@@ -749,26 +754,27 @@ func (c *ChainConfig) rules(num *big.Int) Rules {
 		IsConstantinople: c.IsConstantinople(num),
 		IsPetersburg:     c.IsPetersburg(num),
 		IsIstanbul:       c.IsIstanbul(num),
+		IsCancun:         c.IsCancun(timestamp),
 	}
 }
 
 // AvalancheRules returns the Avalanche modified rules to support Avalanche
 // network upgrades
 func (c *ChainConfig) AvalancheRules(blockNum *big.Int, timestamp uint64) Rules {
-	rules := c.rules(blockNum)
+	rules := c.rules(blockNum, timestamp)
 
 	rules.IsSubnetEVM = c.IsSubnetEVM(timestamp)
-	rules.IsDUpgrade = c.IsDUpgrade(timestamp)
+	rules.IsDurango = c.IsDurango(timestamp)
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
-	rules.Predicates = make(map[common.Address]precompileconfig.Predicater)
+	rules.Predicaters = make(map[common.Address]precompileconfig.Predicater)
 	rules.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
 	for _, module := range modules.RegisteredModules() {
 		if config := c.getActivePrecompileConfig(module.Address, timestamp); config != nil && !config.IsDisabled() {
 			rules.ActivePrecompiles[module.Address] = config
-			if predicate, ok := config.(precompileconfig.Predicater); ok {
-				rules.Predicates[module.Address] = predicate
+			if predicater, ok := config.(precompileconfig.Predicater); ok {
+				rules.Predicaters[module.Address] = predicater
 			}
 			if precompileAccepter, ok := config.(precompileconfig.Accepter); ok {
 				rules.AccepterPrecompiles[module.Address] = precompileAccepter

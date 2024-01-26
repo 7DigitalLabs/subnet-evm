@@ -265,7 +265,6 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 			AllowFeeRecipients:  false,
 			HomesteadBlock:      big.NewInt(0),
 			EIP150Block:         big.NewInt(0),
-			EIP150Hash:          common.Hash{},
 			EIP155Block:         big.NewInt(0),
 			EIP158Block:         big.NewInt(0),
 			ByzantiumBlock:      big.NewInt(0),
@@ -275,7 +274,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 			MuirGlacierBlock:    big.NewInt(0),
 			MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(0),
-				DUpgradeTimestamp:  utils.NewUint64(0),
+				DurangoTimestamp:   utils.NewUint64(0),
 			},
 			GenesisPrecompiles: Precompiles{},
 		},
@@ -303,7 +302,6 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 		},
 		"homesteadBlock": 0,
 		"eip150Block": 0,
-		"eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
 		"eip155Block": 0,
 		"eip158Block": 0,
 		"byzantiumBlock": 0,
@@ -312,7 +310,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 		"istanbulBlock": 0,
 		"muirGlacierBlock": 0,
 		"subnetEVMTimestamp": 0,
-		"dUpgradeTimestamp": 0,
+		"durangoTimestamp": 0,
 		"upgrades": {
 			"precompileUpgrades": [
 				{
