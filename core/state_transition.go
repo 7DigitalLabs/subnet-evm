@@ -35,6 +35,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
@@ -288,11 +289,18 @@ func (st *StateTransition) buyGas() error {
 	mgval := new(big.Int).SetUint64(st.msg.GasLimit)
 	mgval = mgval.Mul(mgval, st.msg.GasPrice)
 	balanceCheck := mgval
+
+
 	if st.msg.GasFeeCap != nil {
-		balanceCheck = new(big.Int).SetUint64(st.msg.GasLimit)
-		balanceCheck.Mul(balanceCheck, st.msg.GasFeeCap)
-		balanceCheck.Add(balanceCheck, st.msg.Value)
+		if whitelistmanager.GetWhitelistStatus(st.state, st.to()).IsWhitelisted() {
+			balanceCheck = new(big.Int).Set(st.msg.Value)
+		} else {
+			balanceCheck = new(big.Int).SetUint64(st.msg.GasLimit)
+			balanceCheck.Mul(balanceCheck, st.msg.GasFeeCap)
+			balanceCheck.Add(balanceCheck, st.msg.Value)
+		}
 	}
+	
 	if have, want := st.state.GetBalance(st.msg.From), balanceCheck; have.Cmp(want) < 0 {
 		return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From.Hex(), have, want)
 	}
@@ -409,15 +417,22 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		contractCreation = msg.To == nil
 	)
 
+	isWhitelisted := whitelistmanager.GetWhitelistStatus(st.state, st.to()).IsWhitelisted()
+	
 	// Check clauses 4-5, subtract intrinsic gas if everything is correct
 	gas, err := IntrinsicGas(msg.Data, msg.AccessList, contractCreation, rules)
 	if err != nil {
 		return nil, err
 	}
+	if isWhitelisted {
+		gas = 0;
+	}
 	if st.gasRemaining < gas {
 		return nil, fmt.Errorf("%w: have %d, want %d", ErrIntrinsicGas, st.gasRemaining, gas)
 	}
-	st.gasRemaining -= gas
+	if !isWhitelisted {
+		st.gasRemaining -= gas
+	}
 
 	// Check clause 6
 	if msg.Value.Sign() > 0 && !st.evm.Context.CanTransfer(st.state, msg.From, msg.Value) {
@@ -443,10 +458,16 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
-		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, msg.Value)
+		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, msg.Value, isWhitelisted)
+	}
+	if isWhitelisted {
+		st.gasRemaining = st.initialGas
 	}
 	st.refundGas(rules.IsSubnetEVM)
-	st.state.AddBalance(st.evm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), msg.GasPrice))
+
+	if !isWhitelisted {
+		st.state.AddBalance(st.evm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), msg.GasPrice))
+	}
 
 	return &ExecutionResult{
 		UsedGas:    st.gasUsed(),

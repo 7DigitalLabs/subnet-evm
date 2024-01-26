@@ -36,6 +36,8 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/core/vm"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -348,7 +350,7 @@ func (l *list) Forward(threshold uint64) types.Transactions {
 // a point in calculating all the costs or if the balance covers all. If the threshold
 // is lower than the costgas cap, the caps will be reset to a new high after removing
 // the newly invalidated transactions.
-func (l *list) Filter(costLimit *big.Int, gasLimit uint64) (types.Transactions, types.Transactions) {
+func (l *list) Filter(costLimit *big.Int, gasLimit uint64, state vm.StateDB) (types.Transactions, types.Transactions) {
 	// If all transactions are below the threshold, short circuit
 	if l.costcap.Cmp(costLimit) <= 0 && l.gascap <= gasLimit {
 		return nil, nil
@@ -358,6 +360,11 @@ func (l *list) Filter(costLimit *big.Int, gasLimit uint64) (types.Transactions, 
 
 	// Filter out all the transactions above the account's funds
 	removed := l.txs.Filter(func(tx *types.Transaction) bool {
+
+		if whitelistmanager.GetWhitelistStatus(state, *tx.To()).IsWhitelisted() {
+			return false
+		}
+
 		return tx.Gas() > gasLimit || tx.Cost().Cmp(costLimit) > 0
 	})
 

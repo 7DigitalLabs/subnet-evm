@@ -46,6 +46,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
@@ -718,11 +719,25 @@ func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) err
 			core.ErrNonceTooLow, from.Hex(), currentNonce, txNonce)
 	}
 
-	// cost == V + GP * GL
-	balance := pool.currentState.GetBalance(from)
-	if balance.Cmp(tx.Cost()) < 0 {
-		return fmt.Errorf("%w: address %s have (%d) want (%d)", core.ErrInsufficientFunds, from.Hex(), balance, tx.Cost())
+	isWhitelisted := false;
+
+	if tx.To() != nil {
+		isWhitelisted = whitelistmanager.GetWhitelistStatus(pool.currentState, *tx.To()).IsWhitelisted()
 	}
+	
+
+	// cost == (V + GP * GL) || (V)
+	balance := pool.currentState.GetBalance(from)
+	if isWhitelisted {
+		if balance.Cmp(tx.Value()) < 0 {
+			return fmt.Errorf("%w: address %s have (%d) want (%d)", core.ErrInsufficientFunds, from.Hex(), balance, tx.Cost())
+		}
+	} else {
+		if balance.Cmp(tx.Cost()) < 0{
+			return fmt.Errorf("%w: address %s have (%d) want (%d)", core.ErrInsufficientFunds, from.Hex(), balance, tx.Cost())
+		}
+	}
+	
 
 	// Verify that replacing transactions will not result in overdraft
 	list := pool.pending[from]
@@ -794,6 +809,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrInvalidSender
 	}
 	// Drop non-local transactions under our own minimal accepted gas price or tip
+
 	if !local && tx.GasTipCapIntCmp(pool.gasPrice) < 0 {
 		return fmt.Errorf("%w: address %s have gas tip cap (%d) < pool gas tip cap (%d)", ErrUnderpriced, from.Hex(), tx.GasTipCap(), pool.gasPrice)
 	}
@@ -1582,7 +1598,7 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 		}
 		log.Trace("Removed old queued transactions", "count", len(forwards))
 		// Drop all transactions that are too costly (low balance or out of gas)
-		drops, _ := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
+		drops, _ := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas, pool.currentState)
 		for _, tx := range drops {
 			hash := tx.Hash()
 			pool.all.Remove(hash)
@@ -1782,7 +1798,7 @@ func (pool *TxPool) demoteUnexecutables() {
 			log.Trace("Removed old pending transaction", "hash", hash)
 		}
 		// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
-		drops, invalids := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
+		drops, invalids := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas, pool.currentState)
 		for _, tx := range drops {
 			hash := tx.Hash()
 			log.Trace("Removed unpayable pending transaction", "hash", hash)

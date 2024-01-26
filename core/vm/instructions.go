@@ -30,6 +30,7 @@ import (
 	"sync/atomic"
 
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -671,6 +672,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byt
 	// We can use this as a temporary value
 	temp := stack.pop()
 	gas := interpreter.evm.callGasTemp
+	
 	// Pop other call parameters.
 	addr, value, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := common.Address(addr.Bytes20())
@@ -689,7 +691,9 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byt
 		bigVal = value.ToBig()
 	}
 
-	ret, returnGas, err := interpreter.evm.Call(scope.Contract, toAddr, args, gas, bigVal)
+	isWhitelisted := whitelistmanager.GetWhitelistStatus(interpreter.evm.StateDB, toAddr).IsWhitelisted()
+
+	ret, returnGas, err := interpreter.evm.Call(scope.Contract, toAddr, args, gas, bigVal, isWhitelisted)
 	if err != nil {
 		temp.Clear()
 	} else {

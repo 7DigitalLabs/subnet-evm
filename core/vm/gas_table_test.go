@@ -106,7 +106,7 @@ func TestEIP2200(t *testing.T) {
 		}
 		vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestChainConfig, Config{ExtraEips: []int{2200}})
 
-		_, gas, err := vmenv.Call(AccountRef(common.Address{}), address, nil, tt.gaspool, new(big.Int))
+		_, gas, err := vmenv.Call(AccountRef(common.Address{}), address, nil, tt.gaspool, new(big.Int), false)
 		if err != tt.failure {
 			t.Errorf("test %d: failure mismatch: have %v, want %v", i, err, tt.failure)
 		}
@@ -164,7 +164,7 @@ func TestCreateGas(t *testing.T) {
 			// because it is the last fork before the activation of EIP-3860
 			vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestSubnetEVMConfig, config)
 			var startGas = uint64(testGas)
-			ret, gas, err := vmenv.Call(AccountRef(common.Address{}), address, nil, startGas, new(big.Int))
+			ret, gas, err := vmenv.Call(AccountRef(common.Address{}), address, nil, startGas, new(big.Int), false)
 			if err != nil {
 				return false
 			}

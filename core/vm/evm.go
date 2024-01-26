@@ -249,7 +249,7 @@ func (evm *EVM) SetBlockContext(blockCtx BlockContext) {
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
-func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int, isWhitelisted bool) (ret []byte, leftOverGas uint64, err error) {
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, gas, vmerrs.ErrDepth
@@ -313,7 +313,9 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			contract := NewContract(caller, AccountRef(addrCopy), value, gas)
 			contract.SetCallCode(&addrCopy, evm.StateDB.GetCodeHash(addrCopy), code)
 			ret, err = evm.interpreter.Run(contract, input, false)
-			gas = contract.Gas
+			if !isWhitelisted{
+				gas = contract.Gas
+			}
 		}
 	}
 	// When an error was returned by the EVM or when setting the creation code
