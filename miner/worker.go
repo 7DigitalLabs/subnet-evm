@@ -253,7 +253,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction, coin
 	)
 
 	if env.rules.IsDurango {
-		results, err := core.CheckPredicates(env.rules, env.predicateContext, tx)
+		results, err := core.CheckPredicates(env.rules, env.predicateContext, tx, false)
 		if err != nil {
 			log.Debug("Transaction predicate failed verification in miner", "tx", tx.Hash(), "err", err)
 			return nil, err

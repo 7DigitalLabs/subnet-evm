@@ -35,7 +35,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
+	_ "github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -134,7 +134,13 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 	// set the receiver's (the executing contract) code for execution.
 	cfg.State.SetCode(address, code)
 
-	isWhitelisted := whitelistmanager.GetWhitelistStatus(cfg.State, address).IsWhitelisted()
+	isWhitelisted := false;
+
+	/*
+	if len(input) > 8 {
+		isWhitelisted = whitelistmanager.GetWhitelistStatus(cfg.State, address, input[:8]).IsWhitelisted()		
+	}
+	*/
 
 	// Call the code with the given configuration.
 	ret, _, err := vmenv.Call(
@@ -197,8 +203,13 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 	// - reset transient storage(eip 1153)
 	statedb.Prepare(rules, cfg.Origin, cfg.Coinbase, &address, vm.ActivePrecompiles(rules), nil)
 
-	isWhitelisted := whitelistmanager.GetWhitelistStatus(cfg.State, address).IsWhitelisted()
+	isWhitelisted := false;
 
+	/*
+	if ( len(input) > 8) {
+		isWhitelisted = whitelistmanager.GetWhitelistStatus(cfg.State, address, input[:8]).IsWhitelisted()		
+	}
+	*/
 	// Call the code with the given configuration.
 	ret, leftOverGas, err := vmenv.Call(
 		sender,

@@ -37,7 +37,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
+	_"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -361,7 +361,14 @@ func (l *list) Filter(costLimit *big.Int, gasLimit uint64, state vm.StateDB) (ty
 	// Filter out all the transactions above the account's funds
 	removed := l.txs.Filter(func(tx *types.Transaction) bool {
 
-		if whitelistmanager.GetWhitelistStatus(state, *tx.To()).IsWhitelisted() {
+		isWhitelisted := false;
+		/*
+		if ( len(tx.Data()) > 8 && tx.To() != nil) {
+			isWhitelisted = whitelistmanager.GetWhitelistStatus(state, *tx.To(), tx.Data()[:8]).IsWhitelisted()		
+		}
+		*/
+
+		if isWhitelisted {
 			return false
 		}
 

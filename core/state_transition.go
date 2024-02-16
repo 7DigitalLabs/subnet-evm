@@ -36,7 +36,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
-	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
+	// predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
@@ -79,8 +79,13 @@ func (result *ExecutionResult) Revert() []byte {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation bool, rules params.Rules) (uint64, error) {
+func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation bool, rules params.Rules, isWhitelisted bool) (uint64, error) {
 	// Set the starting gas for the raw transaction
+
+	/*if isWhitelisted {
+		return 0, nil
+	}*/
+	
 	var gas uint64
 	if isContractCreation && rules.IsHomestead {
 		gas = params.TxGasContractCreation
@@ -134,6 +139,7 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 	}
 
 	return gas, nil
+	
 }
 
 func accessListGas(rules params.Rules, accessList types.AccessList) (uint64, error) {
@@ -290,10 +296,17 @@ func (st *StateTransition) buyGas() error {
 	mgval := new(big.Int).SetUint64(st.msg.GasLimit)
 	mgval = mgval.Mul(mgval, st.msg.GasPrice)
 	balanceCheck := mgval
+	isWhitelisted := false;
+
+	
+	if len(st.msg.Data) > 8 && st.msg.To != nil {
+		isWhitelisted = whitelistmanager.GetWhitelistStatus(st.state, *st.msg.To, st.msg.Data[:8]).IsWhitelisted()		
+	}
+	
 
 
 	if st.msg.GasFeeCap != nil {
-		if whitelistmanager.GetWhitelistStatus(st.state, st.to()).IsWhitelisted() {
+		if isWhitelisted {
 			balanceCheck = new(big.Int).Set(st.msg.Value)
 		} else {
 			balanceCheck = new(big.Int).SetUint64(st.msg.GasLimit)
@@ -418,10 +431,17 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		contractCreation = msg.To == nil
 	)
 
-	isWhitelisted := whitelistmanager.GetWhitelistStatus(st.state, st.to()).IsWhitelisted()
+	isWhitelisted := false;
+	/*
+	if len(st.msg.Data) > 8 && st.msg.To != nil {
+		isWhitelisted = whitelistmanager.GetWhitelistStatus(st.state, *st.msg.To, st.msg.Data).IsWhitelisted()
+	}
+	*/
+	
 	
 	// Check clauses 4-5, subtract intrinsic gas if everything is correct
-	gas, err := IntrinsicGas(msg.Data, msg.AccessList, contractCreation, rules)
+	gas, err := IntrinsicGas(msg.Data, msg.AccessList, contractCreation, rules, isWhitelisted)
+
 	if err != nil {
 		return nil, err
 	}

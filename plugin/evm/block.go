@@ -259,7 +259,8 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 
 	predicateResults := predicate.NewResults()
 	for _, tx := range b.ethBlock.Transactions() {
-		results, err := core.CheckPredicates(rules, predicateContext, tx)
+		
+		results, err := core.CheckPredicates(rules, predicateContext, tx, false)
 		if err != nil {
 			return err
 		}

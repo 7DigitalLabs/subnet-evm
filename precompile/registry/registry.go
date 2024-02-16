@@ -20,6 +20,7 @@ import (
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	// ADD YOUR PRECOMPILE HERE
 	// _ "github.com/ava-labs/subnet-evm/precompile/contracts/yourprecompile"
+	
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
 )
 
