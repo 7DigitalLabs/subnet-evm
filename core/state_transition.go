@@ -79,12 +79,8 @@ func (result *ExecutionResult) Revert() []byte {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation bool, rules params.Rules, isWhitelisted bool) (uint64, error) {
+func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation bool, rules params.Rules) (uint64, error) {
 	// Set the starting gas for the raw transaction
-
-	/*if isWhitelisted {
-		return 0, nil
-	}*/
 	
 	var gas uint64
 	if isContractCreation && rules.IsHomestead {
@@ -300,7 +296,7 @@ func (st *StateTransition) buyGas() error {
 
 	
 	if len(st.msg.Data) > 8 && st.msg.To != nil {
-		isWhitelisted = whitelistmanager.GetWhitelistStatus(st.state, *st.msg.To, st.msg.Data[:8]).IsWhitelisted()		
+		isWhitelisted = whitelistmanager.GetWhitelistStatus(st.state, *st.msg.To, st.msg.Data).IsWhitelisted()		
 	}
 	
 
@@ -433,15 +429,15 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	)
 
 	isWhitelisted := false;
-	/*
+	
 	if len(st.msg.Data) > 8 && st.msg.To != nil {
 		isWhitelisted = whitelistmanager.GetWhitelistStatus(st.state, *st.msg.To, st.msg.Data).IsWhitelisted()
 	}
-	*/
+	
 	
 	
 	// Check clauses 4-5, subtract intrinsic gas if everything is correct
-	gas, err := IntrinsicGas(msg.Data, msg.AccessList, contractCreation, rules, isWhitelisted)
+	gas, err := IntrinsicGas(msg.Data, msg.AccessList, contractCreation, rules)
 
 	if err != nil {
 		return nil, err

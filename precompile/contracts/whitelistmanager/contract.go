@@ -64,7 +64,7 @@ func SetWhitelistManagerStatus(stateDB contract.StateDB, address common.Address,
 
 // GetWhiteListStatus returns the status of [address] for the whitelist.
 func GetWhitelistStatus(stateDB contract.StateDB, address common.Address, method []byte) Whitelist {
-	hash := common.BytesToHash(append(address[:], method[:]...))
+	hash := common.BytesToHash(append(address[:], method[:8]...))
 	//addressKey := address.Hash()
 
 	return Whitelist(stateDB.GetState(ContractAddress, hash))
@@ -74,7 +74,7 @@ func GetWhitelistStatus(stateDB contract.StateDB, address common.Address, method
 // assumes [status] has already been verified as valid.
 func SetWhitelistStatus(stateDB contract.StateDB, address common.Address, method []byte, status Whitelist) {
 	// Generate the state key for [address]
-	hash := common.BytesToHash(append(address[:], method[:]...))
+	hash := common.BytesToHash(append(address[:], method[:8]...))
 	//addressKey := address.Hash()
 	// Assign [status] to the address
 	// This stores the [status] in the contract storage with address [ContractAddress]

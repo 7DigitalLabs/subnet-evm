@@ -45,7 +45,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
-	_"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
@@ -731,11 +731,10 @@ func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) err
 	}
 
 	isWhitelisted := false;
-	/*
+
 	if tx.To() != nil && len(tx.Data()) > 8 {
-		isWhitelisted = whitelistmanager.GetWhitelistStatus(pool.currentState, *tx.To(), tx.Data()[:8]).IsWhitelisted()
+		isWhitelisted = whitelistmanager.GetWhitelistStatus(pool.currentState, *tx.To(), tx.Data()).IsWhitelisted()
 	}
-	*/
 
 	// cost == (V + GP * GL) || (V)
 	balance := pool.currentState.GetBalance(from)
@@ -837,13 +836,7 @@ func (pool *TxPool) validateTxBasics(tx *types.Transaction, local bool) error {
 	}
 	// Ensure the transaction has more gas than the basic tx fee.
 
-	isWhitelisted := false;
-	/*
-	if tx.To() != nil && len(tx.Data()) > 8 {
-		isWhitelisted = whitelistmanager.GetWhitelistStatus(pool.currentState, *tx.To(), tx.Data()[:8]).IsWhitelisted()
-	}
-	*/
-	intrGas, err := core.IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, *pool.rules.Load(), isWhitelisted)
+	intrGas, err := core.IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, *pool.rules.Load())
 	if err != nil {
 		return err
 	}

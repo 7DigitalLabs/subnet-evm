@@ -28,7 +28,7 @@ package vm
 
 import (
 	"github.com/ava-labs/subnet-evm/params"
-	_"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -691,11 +691,9 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byt
 
 	isWhitelisted := false;
 
-	/*
 	if len(args) > 8{
-		isWhitelisted = whitelistmanager.GetWhitelistStatus(interpreter.evm.StateDB, toAddr, args[:8]).IsWhitelisted()		
+		isWhitelisted = whitelistmanager.GetWhitelistStatus(interpreter.evm.StateDB, toAddr, args).IsWhitelisted()		
 	}
-	*/
 
 	ret, returnGas, err := interpreter.evm.Call(scope.Contract, toAddr, args, gas, bigVal, isWhitelisted)
 	if err != nil {

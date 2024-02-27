@@ -19,11 +19,11 @@ import (
 var ErrMissingPredicateContext = errors.New("missing predicate context")
 
 // CheckPredicates verifies the predicates of [tx] and returns the result. Returning an error invalidates the block.
-func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.PredicateContext, tx *types.Transaction, isWhitelisted bool) (map[common.Address][]byte, error) {
+func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.PredicateContext, tx *types.Transaction) (map[common.Address][]byte, error) {
 	// Check that the transaction can cover its IntrinsicGas (including the gas required by the predicate) before
 	// verifying the predicate.
 	
-	intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, rules, isWhitelisted)
+	intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, rules)
 	if err != nil {
 		return nil, err
 	}

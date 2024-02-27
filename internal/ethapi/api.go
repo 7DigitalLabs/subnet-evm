@@ -1324,7 +1324,6 @@ func DoEstimateGas(ctx context.Context, b Backend, args TransactionArgs, blockNr
 		}
 	}
 	return hexutil.Uint64(hi), nil
-	//return hexutil.Uint64(0), nil
 }
 
 // EstimateGas returns an estimate of the amount of gas needed to execute the

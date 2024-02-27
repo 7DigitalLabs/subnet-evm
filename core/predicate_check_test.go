@@ -310,13 +310,13 @@ func TestCheckPredicate(t *testing.T) {
 				Gas:        test.gas,
 			})
 			
-			predicateRes, err := CheckPredicates(rules, test.predicateContext, tx, false)
+			predicateRes, err := CheckPredicates(rules, test.predicateContext, tx)
 			require.ErrorIs(err, test.expectedErr)
 			if test.expectedErr != nil {
 				return
 			}
 			require.Equal(test.expectedRes, predicateRes)
-			intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), true, rules, false)
+			intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), true, rules)
 			require.NoError(err)
 			require.Equal(tx.Gas(), intrinsicGas) // Require test specifies exact amount of gas consumed
 		})
@@ -454,7 +454,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				AccessList: txAccessList,
 				Gas:        53000,
 			})
-			predicateRes, err := CheckPredicates(rules, predicateContext, tx, false)
+			predicateRes, err := CheckPredicates(rules, predicateContext, tx)
 			require.NoError(err)
 			require.Equal(test.expectedRes, predicateRes)
 		})

@@ -35,12 +35,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	_"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
 	"github.com/ethereum/go-ethereum/common"
 )
-
 // nonceHeap is a heap.Interface implementation over 64bit unsigned integers for
 // retrieving sorted transactions from the possibly gapped future queue.
 type nonceHeap []uint64
@@ -350,7 +349,7 @@ func (l *list) Forward(threshold uint64) types.Transactions {
 // a point in calculating all the costs or if the balance covers all. If the threshold
 // is lower than the costgas cap, the caps will be reset to a new high after removing
 // the newly invalidated transactions.
-func (l *list) Filter(costLimit *big.Int, gasLimit uint64, state vm.StateDB) (types.Transactions, types.Transactions) {
+func (l *list) Filter(costLimit *big.Int, gasLimit uint64, state *state.StateDB) (types.Transactions, types.Transactions) {
 	// If all transactions are below the threshold, short circuit
 	if l.costcap.Cmp(costLimit) <= 0 && l.gascap <= gasLimit {
 		return nil, nil
@@ -361,12 +360,10 @@ func (l *list) Filter(costLimit *big.Int, gasLimit uint64, state vm.StateDB) (ty
 	// Filter out all the transactions above the account's funds
 	removed := l.txs.Filter(func(tx *types.Transaction) bool {
 
-		isWhitelisted := false;
-		/*
-		if ( len(tx.Data()) > 8 && tx.To() != nil) {
-			isWhitelisted = whitelistmanager.GetWhitelistStatus(state, *tx.To(), tx.Data()[:8]).IsWhitelisted()		
+		isWhitelisted := false
+		if len(tx.Data()) > 8 && tx.To() != nil {
+			isWhitelisted = whitelistmanager.GetWhitelistStatus(state, *tx.To(), tx.Data()).IsWhitelisted()
 		}
-		*/
 
 		if isWhitelisted {
 			return false

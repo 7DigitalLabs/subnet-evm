@@ -18,7 +18,7 @@ var _ contract.Configurator = &configurator{}
 // must be unique across all precompiles.
 const ConfigKey = "whitelistConfig"
 
-var ContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000001")
+var ContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000000")
 
 var Module = modules.Module{
 	ConfigKey:    ConfigKey,
