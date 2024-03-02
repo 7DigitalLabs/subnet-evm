@@ -732,7 +732,7 @@ func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) err
 
 	isWhitelisted := false;
 
-	if tx.To() != nil && len(tx.Data()) > 8 {
+	if tx.To() != nil && len(tx.Data()) >= 8 {
 		isWhitelisted = whitelistmanager.GetWhitelistStatus(pool.currentState, *tx.To(), tx.Data()).IsWhitelisted()
 	}
 
