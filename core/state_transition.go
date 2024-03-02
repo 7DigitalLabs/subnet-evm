@@ -295,7 +295,7 @@ func (st *StateTransition) buyGas() error {
 	isWhitelisted := false;
 
 	
-	if len(st.msg.Data) >= 8 && st.msg.To != nil {
+	if len(st.msg.Data) >= 4 && st.msg.To != nil {
 		isWhitelisted = whitelistmanager.GetWhitelistStatus(st.state, *st.msg.To, st.msg.Data).IsWhitelisted()		
 	}
 	
@@ -430,7 +430,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 
 	isWhitelisted := false;
 	
-	if len(st.msg.Data) >= 8 && st.msg.To != nil {
+	if len(st.msg.Data) >= 4 && st.msg.To != nil {
 		isWhitelisted = whitelistmanager.GetWhitelistStatus(st.state, *st.msg.To, st.msg.Data).IsWhitelisted()
 	}
 	

@@ -52,4 +52,3 @@ cmd/simulator/simulator
 # goreleaser
 dist/
 vm
-vm

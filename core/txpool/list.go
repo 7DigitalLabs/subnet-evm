@@ -361,7 +361,7 @@ func (l *list) Filter(costLimit *big.Int, gasLimit uint64, state *state.StateDB)
 	removed := l.txs.Filter(func(tx *types.Transaction) bool {
 
 		isWhitelisted := false
-		if len(tx.Data()) >= 8 && tx.To() != nil {
+		if len(tx.Data()) >= 4 && tx.To() != nil {
 			isWhitelisted = whitelistmanager.GetWhitelistStatus(state, *tx.To(), tx.Data()).IsWhitelisted()
 		}
 
