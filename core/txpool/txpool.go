@@ -36,13 +36,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
-	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ava-labs/subnet-evm/vmerrs"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -417,52 +410,6 @@ func (p *TxPool) PendingFrom(addrs []common.Address, enforceTips bool) map[commo
 		}
 	}
 	return txs
-}
-
-// checks transaction validity against the current state.
-func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) error {
-	pool.currentStateLock.Lock()
-	defer pool.currentStateLock.Unlock()
-
-	txNonce := tx.Nonce()
-	// Ensure the transaction adheres to nonce ordering
-	if currentNonce := pool.currentState.GetNonce(from); currentNonce > txNonce {
-		return fmt.Errorf("%w: address %s current nonce (%d) > tx nonce (%d)",
-			core.ErrNonceTooLow, from.Hex(), currentNonce, txNonce)
-	}
-
-	isWhitelisted := false;
-
-	if tx.To() != nil && len(tx.Data()) >= 4 {
-		isWhitelisted = whitelistmanager.GetWhitelistStatus(pool.currentState, *tx.To(), tx.Data()).IsWhitelisted()
-	}
-
-	// cost == (V + GP * GL) || (V)
-	balance := pool.currentState.GetBalance(from)
-	if isWhitelisted {
-		if balance.Cmp(tx.Value()) < 0 {
-			return fmt.Errorf("%w: address %s have (%d) want (%d)", core.ErrInsufficientFunds, from.Hex(), balance, tx.Cost())
-		}
-	} else {
-		if balance.Cmp(tx.Cost()) < 0{
-			return fmt.Errorf("%w: address %s have (%d) want (%d)", core.ErrInsufficientFunds, from.Hex(), balance, tx.Cost())
-		}
-	}
-	
-
-	// Verify that replacing transactions will not result in overdraft
-	list := pool.pending[from]
-	if list != nil { // Sender already has pending txs
-		sum := new(big.Int).Add(tx.Cost(), list.totalcost)
-		if repl := list.txs.Get(tx.Nonce()); repl != nil {
-			// Deduct the cost of a transaction replaced by this
-			sum.Sub(sum, repl.Cost())
-		}
-		if balance.Cmp(sum) < 0 {
-			log.Trace("Replacing transactions would overdraft", "sender", from, "balance", pool.currentState.GetBalance(from), "required", sum)
-			return ErrOverdraft
-		}
-	}
 }
 
 // IteratePending iterates over [pool.pending] until [f] returns false.

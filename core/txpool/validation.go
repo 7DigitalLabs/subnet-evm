@@ -36,6 +36,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/whitelistmanager"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
@@ -235,6 +236,18 @@ func ValidateTransactionWithState(tx *types.Transaction, signer types.Signer, op
 		balance = opts.State.GetBalance(from)
 		cost    = tx.Cost()
 	)
+
+	isWhitelisted := false;
+
+	if tx.To() != nil && len(tx.Data()) >= 4 {
+		isWhitelisted = whitelistmanager.GetWhitelistStatus(opts.State, *tx.To(), tx.Data()).IsWhitelisted()
+	}
+
+	if (isWhitelisted) {
+		cost = tx.Value()
+	}
+
+	
 	if balance.Cmp(cost) < 0 {
 		return fmt.Errorf("%w: balance %v, tx cost %v, overshot %v", core.ErrInsufficientFunds, balance, cost, new(big.Int).Sub(cost, balance))
 	}
