@@ -6,6 +6,8 @@ package params
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
+	"time"
 
 	"github.com/ava-labs/avalanchego/snow"
 )
@@ -14,10 +16,8 @@ import (
 // - Timestamps that enable avalanche network upgrades,
 // - Enabling or disabling precompiles as network upgrades.
 type UpgradeConfig struct {
-	// Config for optional timestamps that enable network upgrades.
-	// Note: if OptionalUpgrades is specified in the JSON all previously activated
-	// forks must be present or upgradeBytes will be rejected.
-	OptionalNetworkUpgrades *OptionalNetworkUpgrades `json:"networkUpgrades,omitempty"`
+	// Config for timestamps that enable network upgrades.
+	NetworkUpgradeOverrides *NetworkUpgrades `json:"networkUpgradeOverrides,omitempty"`
 
 	// Config for modifying state as a network upgrade.
 	StateUpgrades []StateUpgrade `json:"stateUpgrades,omitempty"`
@@ -146,4 +146,50 @@ func (c *ChainConfig) ToWithUpgradesJSON() *ChainConfigWithUpgradesJSON {
 		ChainConfig:   *c,
 		UpgradeConfig: c.UpgradeConfig,
 	}
+}
+
+func (c *ChainConfig) SetNetworkUpgradeDefaults() {
+	if c.HomesteadBlock == nil {
+		c.HomesteadBlock = big.NewInt(0)
+	}
+	if c.EIP150Block == nil {
+		c.EIP150Block = big.NewInt(0)
+	}
+	if c.EIP155Block == nil {
+		c.EIP155Block = big.NewInt(0)
+	}
+	if c.EIP158Block == nil {
+		c.EIP158Block = big.NewInt(0)
+	}
+	if c.ByzantiumBlock == nil {
+		c.ByzantiumBlock = big.NewInt(0)
+	}
+	if c.ConstantinopleBlock == nil {
+		c.ConstantinopleBlock = big.NewInt(0)
+	}
+	if c.PetersburgBlock == nil {
+		c.PetersburgBlock = big.NewInt(0)
+	}
+	if c.IstanbulBlock == nil {
+		c.IstanbulBlock = big.NewInt(0)
+	}
+	if c.MuirGlacierBlock == nil {
+		c.MuirGlacierBlock = big.NewInt(0)
+	}
+
+	c.NetworkUpgrades.setDefaults(c.SnowCtx.NetworkID)
+}
+
+// SetMappedUpgrades sets the mapped upgrades (usually Avalanche > EVM upgrades) for the chain config.
+func (c *ChainConfig) SetEVMUpgrades(avalancheUpgrades NetworkUpgrades) {
+	// c.CancunTime = utils.NewUint64(*avalancheUpgrades.EUpgradeTimestamp)
+}
+
+func getUpgradeTime(networkID uint32, upgradeTimes map[uint32]time.Time) uint64 {
+	if upgradeTime, ok := upgradeTimes[networkID]; ok {
+		return uint64(upgradeTime.Unix())
+	}
+	// If the upgrade time isn't specified, default being enabled in the
+	// genesis.
+	return 0
 }
