@@ -122,7 +122,6 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, sta
 
 	// Apply the transaction to the current state (included in the env).
 	result, err := ApplyMessage(evm, msg, gp)
-	log.Info("RESULT", "FAILED:", result.Failed())
 	if err != nil {
 		return nil, err
 	}
