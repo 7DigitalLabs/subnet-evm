@@ -208,7 +208,7 @@ func GenesisVM(t *testing.T,
 	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, genesisJSON)
 	appSender := &commonEng.SenderTest{T: t}
 	appSender.CantSendAppGossip = true
-	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
+	appSender.SendAppGossipF = func(context.Context, []byte, int, int, int) error { return nil }
 	err := vm.Initialize(
 		context.Background(),
 		ctx,
@@ -1994,7 +1994,7 @@ func TestConfigureLogLevel(t *testing.T) {
 			ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, test.genesisJSON)
 			appSender := &commonEng.SenderTest{T: t}
 			appSender.CantSendAppGossip = true
-			appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
+			appSender.SendAppGossipF = func(context.Context, []byte, int, int, int) error { return nil }
 			err := vm.Initialize(
 				context.Background(),
 				ctx,
@@ -2819,7 +2819,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	data, err := rewardmanager.PackSetRewardAddress(testAddr)
 	require.NoError(t, err)
 
-	gas := 21000 + 240 + rewardmanager.SetRewardAddressGasCost + rewardmanager.RewardAddressChangedEventGasCost // 21000 for tx, 240 for tx data
+	gas := 21000 + 240 + rewardmanager.SetRewardAddressGasCost // 21000 for tx, 240 for tx data
 
 	tx := types.NewTransaction(uint64(0), rewardmanager.ContractAddress, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
 
@@ -2957,7 +2957,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	data, err := rewardmanager.PackAllowFeeRecipients()
 	require.NoError(t, err)
 
-	gas := 21000 + 240 + rewardmanager.SetRewardAddressGasCost + rewardmanager.RewardAddressChangedEventGasCost // 21000 for tx, 240 for tx data
+	gas := 21000 + 240 + rewardmanager.AllowFeeRecipientsGasCost // 21000 for tx, 240 for tx data
 
 	tx := types.NewTransaction(uint64(0), rewardmanager.ContractAddress, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
 

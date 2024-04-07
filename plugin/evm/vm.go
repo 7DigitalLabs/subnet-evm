@@ -19,6 +19,7 @@ import (
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
+	avalanchegoConstants "github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -325,12 +326,18 @@ func (vm *VM) Initialize(
 		g.Config = params.SubnetEVMDefaultChainConfig
 	}
 
-	// Set the Avalanche Context on the ChainConfig
-	g.Config.AvalancheContext = params.AvalancheContext{
-		SnowCtx: chainCtx,
+	mandatoryNetworkUpgrades := params.GetMandatoryNetworkUpgrades(chainCtx.NetworkID)
+	if avalanchegoConstants.ProductionNetworkIDs.Contains(chainCtx.NetworkID) {
+		// We enforce network upgrades here, regardless of the chain config
+		// provided in the genesis file
+		g.Config.MandatoryNetworkUpgrades = mandatoryNetworkUpgrades
+	} else {
+		// If we are not enforcing, then apply those only if they are not
+		// already set in the genesis file
+		if g.Config.MandatoryNetworkUpgrades == (params.MandatoryNetworkUpgrades{}) {
+			g.Config.MandatoryNetworkUpgrades = mandatoryNetworkUpgrades
+		}
 	}
-
-	g.Config.SetNetworkUpgradeDefaults()
 
 	// Load airdrop file if provided
 	if vm.config.AirdropFile != "" {
@@ -339,7 +346,10 @@ func (vm *VM) Initialize(
 			return fmt.Errorf("could not read airdrop file '%s': %w", vm.config.AirdropFile, err)
 		}
 	}
-
+	// Set the Avalanche Context on the ChainConfig
+	g.Config.AvalancheContext = params.AvalancheContext{
+		SnowCtx: chainCtx,
+	}
 	vm.syntacticBlockValidator = NewBlockValidator()
 
 	if g.Config.FeeConfig == commontype.EmptyFeeConfig {
@@ -357,19 +367,6 @@ func (vm *VM) Initialize(
 		}
 		g.Config.UpgradeConfig = upgradeConfig
 	}
-
-	if g.Config.UpgradeConfig.NetworkUpgradeOverrides != nil {
-		overrides := g.Config.UpgradeConfig.NetworkUpgradeOverrides
-		marshaled, err := json.Marshal(overrides)
-		if err != nil {
-			log.Warn("Failed to marshal network upgrade overrides", "error", err, "overrides", overrides)
-		} else {
-			log.Info("Applying network upgrade overrides", "overrides", string(marshaled))
-		}
-		g.Config.Override(overrides)
-	}
-
-	g.Config.SetEVMUpgrades(g.Config.NetworkUpgrades)
 
 	if err := g.Verify(); err != nil {
 		return fmt.Errorf("failed to verify genesis: %w", err)
@@ -690,9 +687,8 @@ func (vm *VM) initBlockBuilding() error {
 	}()
 
 	pushGossipParams := gossip.BranchingFactor{
-		StakePercentage: vm.config.PushGossipPercentStake,
-		Validators:      vm.config.PushGossipNumValidators,
-		Peers:           vm.config.PushGossipNumPeers,
+		Validators: vm.config.PushGossipNumValidators,
+		Peers:      vm.config.PushGossipNumPeers,
 	}
 	pushRegossipParams := gossip.BranchingFactor{
 		Validators: vm.config.PushRegossipNumValidators,
@@ -704,7 +700,6 @@ func (vm *VM) initBlockBuilding() error {
 		ethTxPushGossiper, err = gossip.NewPushGossiper[*GossipEthTx](
 			ethTxGossipMarshaller,
 			ethTxPool,
-			vm.validators,
 			ethTxGossipClient,
 			ethTxGossipMetrics,
 			pushGossipParams,

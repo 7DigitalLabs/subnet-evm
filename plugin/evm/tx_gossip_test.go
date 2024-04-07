@@ -79,12 +79,7 @@ func TestEthTxGossip(t *testing.T) {
 		return 0, nil
 	}
 	validatorState.GetValidatorSetF = func(context.Context, uint64, ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-		return map[ids.NodeID]*validators.GetValidatorOutput{
-			requestingNodeID: {
-				NodeID: requestingNodeID,
-				Weight: 1,
-			},
-		}, nil
+		return map[ids.NodeID]*validators.GetValidatorOutput{requestingNodeID: nil}, nil
 	}
 
 	// Ask the VM for any new transactions. We should get nothing at first.
@@ -154,19 +149,12 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
 	snowCtx := utils.TestSnowContext()
-	snowCtx.ValidatorState = &validators.TestState{
-		GetCurrentHeightF: func(context.Context) (uint64, error) {
-			return 0, nil
-		},
-		GetValidatorSetF: func(context.Context, uint64, ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-			return nil, nil
-		},
-	}
 	sender := &common.FakeSender{
 		SentAppGossip: make(chan []byte, 1),
 	}
 
 	vm := &VM{
+		p2pSender:         sender,
 		ethTxPullGossiper: gossip.NoOpGossiper{},
 	}
 
@@ -179,7 +167,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 		nil,
 		make(chan common.Message),
 		nil,
-		sender,
+		&common.FakeSender{},
 	))
 	require.NoError(vm.SetState(ctx, snow.NormalOp))
 
@@ -220,6 +208,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 
 	sender := &common.SenderTest{}
 	vm := &VM{
+		p2pSender:         sender,
 		ethTxPullGossiper: gossip.NoOpGossiper{},
 	}
 
@@ -232,7 +221,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 		nil,
 		make(chan common.Message),
 		nil,
-		sender,
+		&common.FakeSender{},
 	))
 	require.NoError(vm.SetState(ctx, snow.NormalOp))
 

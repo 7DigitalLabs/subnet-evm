@@ -9,7 +9,7 @@ set -euo pipefail
 GOPATH="$(go env GOPATH)"
 
 # Avalabs docker hub
-DOCKERHUB_REPO="avaplatform/subnet-evm"
+DOCKERHUB_REPO="avaplatform/avalanchego"
 
 # if this isn't a git repository (say building from a release), don't set our git constants.
 if [ ! -d .git ]; then
